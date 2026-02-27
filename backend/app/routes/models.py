@@ -1,0 +1,68 @@
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
+from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
+from app.database import get_db
+from app import models, schemas, scanner, blockchain, utils
+from app.dependencies import get_current_user
+import logging
+
+logger = logging.getLogger(__name__)
+router = APIRouter()
+
+MAX_FILE_SIZE = 20 * 1024 * 1024 # 20 MB
+
+@router.post("/register", response_model=schemas.ModelFileResponse)
+async def register_model(
+    name: str = Form(...),
+    description: str = Form(None),
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    if not file.filename.endswith(('.pkl', '.pt')):
+        raise HTTPException(status_code=400, detail="Invalid file type. Only .pkl and .pt are supported.")
+        
+    file_content = await file.read()
+    
+    if len(file_content) > MAX_FILE_SIZE:
+        logger.warning(f"File size exceeded for user {current_user.email}")
+        raise HTTPException(status_code=400, detail="File too large. Max size is 20MB.")
+        
+    # 1. Scan for malicious patterns
+    is_malicious = scanner.scan_model_file(file_content)
+    if is_malicious:
+        logger.warning(f"Malicious code detected in upload by {current_user.email}")
+        raise HTTPException(status_code=403, detail="Malicious code detected in model file. Registration rejected.")
+        
+    # 2. Compute Hash
+    file_hash = utils.compute_sha256(file_content)
+    
+    # 3. Check if already exists in DB
+    existing_model = db.query(models.ModelFile).filter(models.ModelFile.file_hash == file_hash).first()
+    if existing_model:
+        raise HTTPException(status_code=400, detail="Model with this hash is already registered.")
+        
+    # 4. Register on blockchain
+    # Use empty string for metadata URI or a generic JSON URI
+    tx_hash = blockchain.register_model_hash_on_chain(file_hash, "")
+    
+    # 5. Store in DB
+    new_model = models.ModelFile(
+        name=name,
+        description=description,
+        file_hash=file_hash,
+        tx_hash=tx_hash,
+        verified=True,
+        publisher_id=current_user.id
+    )
+    
+    try:
+        db.add(new_model)
+        db.commit()
+        db.refresh(new_model)
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error(f"Database error during model registration: {str(e)}")
+        raise HTTPException(status_code=500, detail="Database error occurred during registration.")
+    
+    return new_model
