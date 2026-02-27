@@ -39,6 +39,7 @@ class ModelFileResponse(ModelFileBase):
     file_hash: str
     tx_hash: Optional[str] = None
     verified: bool
+    scan_status: Optional[str] = None
     publisher_id: int
     created_at: datetime
 

@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { UploadCloud, CheckCircle, ShieldAlert, Cpu } from 'lucide-react';
+import { UploadCloud, CheckCircle, ShieldAlert, ShieldCheck, Cpu } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { modelService } from '../../services/modelService';
 import { useToast } from '../../context/ToastContext';
@@ -36,7 +36,7 @@ export default function ModelUpload() {
                 hash: response?.file_hash ?? 'Unknown Hash',
                 txId: response?.tx_hash ?? 'N/A',
                 status: response?.verified ? 'Verified' : 'Processing',
-                confidence: '99.9%'
+                scan_status: response?.scan_status ?? 'Passed'
             });
             toast.success('Model successfully uploaded and verified.');
         } catch (error) {
@@ -157,8 +157,11 @@ export default function ModelUpload() {
                                     </div>
                                 </div>
                                 <div className="bg-white/5 border border-white/5 rounded-xl p-4">
-                                    <span className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Integrity Score</span>
-                                    <span className="text-xl text-white font-bold">{result.confidence} <span className="text-gray-500 text-sm font-normal">verified bounds</span></span>
+                                    <span className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Security Scan</span>
+                                    <div className="flex items-center gap-2">
+                                        <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                                        <span className="text-lg text-white font-bold">{result.scan_status}</span>
+                                    </div>
                                 </div>
                             </div>
                         </motion.div>

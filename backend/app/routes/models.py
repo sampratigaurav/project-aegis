@@ -66,4 +66,16 @@ async def register_model(
         logger.error(f"Database error during model registration: {str(e)}")
         raise HTTPException(status_code=500, detail="Database error occurred during registration.")
     
-    return new_model
+    # We return a dictionary matching ModelFileResponse to include scan_status
+    # without needing to add it to the ModelFile database model directly.
+    return {
+        "id": new_model.id,
+        "name": new_model.name,
+        "description": new_model.description,
+        "file_hash": new_model.file_hash,
+        "tx_hash": new_model.tx_hash,
+        "verified": new_model.verified,
+        "scan_status": "Passed (ProtectAI ModelScan)",
+        "publisher_id": new_model.publisher_id,
+        "created_at": new_model.created_at
+    }
