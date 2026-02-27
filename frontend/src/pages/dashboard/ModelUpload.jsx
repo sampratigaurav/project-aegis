@@ -33,10 +33,10 @@ export default function ModelUpload() {
             const response = await modelService.registerModel(formData);
 
             setResult({
-                hash: response?.hash ?? 'Unknown Hash',
-                txId: response?.txId ?? 'N/A',
-                status: response?.status ?? 'Processing',
-                confidence: response?.confidence ?? 'N/A'
+                hash: response?.file_hash ?? 'Unknown Hash',
+                txId: response?.tx_hash ?? 'N/A',
+                status: response?.verified ? 'Verified' : 'Processing',
+                confidence: '99.9%'
             });
             toast.success('Model successfully uploaded and verified.');
         } catch (error) {

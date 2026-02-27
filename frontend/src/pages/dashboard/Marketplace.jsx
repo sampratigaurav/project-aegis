@@ -80,7 +80,7 @@ export default function Marketplace() {
                             <div className="flex justify-between items-start mb-4">
                                 <div className="min-w-0 pr-4">
                                     <h3 className="text-xl font-bold mb-1 truncate">{model?.name || 'Unnamed Model'}</h3>
-                                    <p className="text-sm text-gray-500 truncate">{model?.vendor || 'Unknown Publisher'}</p>
+                                    <p className="text-sm text-gray-500 truncate">{model?.publisher || 'Unknown Publisher'}</p>
                                 </div>
                                 {model?.verified && (
                                     <div className="flex-shrink-0 flex items-center gap-1 text-aegis-accent bg-aegis-accent/10 px-2 py-1 rounded-full text-xs font-bold border border-aegis-accent/20">
@@ -100,7 +100,7 @@ export default function Marketplace() {
                             <div className="flex items-center justify-between pt-4 border-t border-white/5 mt-auto">
                                 <div className="flex flex-col min-w-0 pr-4">
                                     <span className="text-xs text-gray-500 uppercase tracking-wider font-bold">Hash</span>
-                                    <code className="text-xs text-gray-400 font-mono truncate max-w-[120px]">{model?.hash || 'N/A'}</code>
+                                    <code className="text-xs text-gray-400 font-mono truncate max-w-[120px]">{model?.file_hash || 'N/A'}</code>
                                 </div>
 
                                 <button className="p-2 bg-white/5 hover:bg-aegis-accent border border-white/10 hover:border-aegis-accent rounded-xl text-white hover:text-black transition-all flex-shrink-0">

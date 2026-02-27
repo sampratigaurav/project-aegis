@@ -5,8 +5,8 @@ router = APIRouter()
 
 @router.post("")
 async def verify_model(file: UploadFile = File(...)):
-    if not file.filename.endswith(('.pkl', '.pt')):
-        raise HTTPException(status_code=400, detail="Invalid file type. Only .pkl and .pt are supported.")
+    if not file.filename.endswith(('.pkl', '.pt', '.pth', '.h5', '.onnx', '.pb')):
+        raise HTTPException(status_code=400, detail="Invalid file type. Supported: .pkl, .pt, .pth, .h5, .onnx, .pb")
         
     try:
         file_content = await file.read()

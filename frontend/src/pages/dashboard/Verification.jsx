@@ -34,12 +34,12 @@ export default function Verification() {
 
             const response = await verifyService.verifyModel(formData);
 
-            // Assume the response returns { registered: boolean, publisher: string, timestamp: string }
+            const onChain = response?.on_chain_verification;
             setResult({
-                status: response?.registered ? 'verified' : 'tampered',
-                message: response?.registered ? 'Cryptographic proof matches registered payload.' : 'Model not found or altered.',
-                publisher: response?.publisher ?? 'Unknown',
-                timestamp: response?.timestamp ?? null
+                status: onChain?.is_registered ? 'verified' : 'tampered',
+                message: onChain?.is_registered ? 'Cryptographic proof matches registered payload.' : 'Model not found or altered.',
+                publisher: onChain?.publisher ?? 'Unknown',
+                timestamp: onChain?.timestamp ? (onChain.timestamp * 1000) : null
             });
             toast.success('Verification process completed.');
         } catch (error) {

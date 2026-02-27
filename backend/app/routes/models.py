@@ -9,24 +9,24 @@ import logging
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-MAX_FILE_SIZE = 20 * 1024 * 1024 # 20 MB
+MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024 # 2 GB
 
 @router.post("/register", response_model=schemas.ModelFileResponse)
 async def register_model(
-    name: str = Form(...),
     description: str = Form(None),
     file: UploadFile = File(...),
+    name: str = Form(None),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    if not file.filename.endswith(('.pkl', '.pt')):
-        raise HTTPException(status_code=400, detail="Invalid file type. Only .pkl and .pt are supported.")
+    if not file.filename.endswith(('.pkl', '.pt', '.pth', '.h5', '.onnx', '.pb')):
+        raise HTTPException(status_code=400, detail="Invalid file type. Supported: .pkl, .pt, .pth, .h5, .onnx, .pb")
         
     file_content = await file.read()
     
     if len(file_content) > MAX_FILE_SIZE:
         logger.warning(f"File size exceeded for user {current_user.email}")
-        raise HTTPException(status_code=400, detail="File too large. Max size is 20MB.")
+        raise HTTPException(status_code=400, detail="File too large. Max size is 2GB.")
         
     # 1. Scan for malicious patterns
     is_malicious = scanner.scan_model_file(file_content)
@@ -46,9 +46,10 @@ async def register_model(
     # Use empty string for metadata URI or a generic JSON URI
     tx_hash = blockchain.register_model_hash_on_chain(file_hash, "")
     
+    actual_name = name if name else file.filename
     # 5. Store in DB
     new_model = models.ModelFile(
-        name=name,
+        name=actual_name,
         description=description,
         file_hash=file_hash,
         tx_hash=tx_hash,
