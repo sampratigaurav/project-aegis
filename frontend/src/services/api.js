@@ -32,7 +32,7 @@ api.interceptors.response.use(
 
         if (error.response) {
             // The request was made and the server responded with a status code outside 2xx
-            formattedError.message = error.response.data?.message || error.response.statusText;
+            formattedError.message = error.response.data?.detail || error.response.data?.message || error.response.statusText;
 
             // Handle 401 Unauthorized globally
             if (error.response.status === 401) {
