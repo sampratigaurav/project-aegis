@@ -4,11 +4,12 @@ import { marketplaceService } from '../../services/marketplaceService';
 import Spinner from '../../components/ui/Spinner';
 import EmptyState from '../../components/ui/EmptyState';
 import RetryBlock from '../../components/ui/RetryBlock';
-import { toast } from 'react-hot-toast';
+import { useToast } from '../../context/ToastContext';
 
 // ─── Model Detail Modal ────────────────────────────────────────────────
 function ModelDetailModal({ model, onClose }) {
     const [copiedField, setCopiedField] = useState(null);
+    const toast = useToast();
 
     if (!model) return null;
 
@@ -158,6 +159,7 @@ export default function Marketplace() {
     const [error, setError] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedModel, setSelectedModel] = useState(null);
+    const toast = useToast();
 
     const fetchModels = async () => {
         setLoading(true);
