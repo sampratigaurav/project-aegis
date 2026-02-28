@@ -6,7 +6,7 @@ if (!import.meta.env.VITE_API_URL) {
 
 const api = axios.create({
     baseURL: import.meta.env.VITE_API_URL,
-    timeout: 10000,
+    timeout: 180000, // 3 minutes — blockchain transactions can take 30-120s
 });
 
 api.interceptors.request.use(
@@ -37,8 +37,13 @@ api.interceptors.response.use(
             // Handle 401 Unauthorized globally
             if (error.response.status === 401) {
                 localStorage.removeItem('aegis_token');
-                if (window.location.pathname !== '/login' && window.location.pathname !== '/signup') {
-                    window.location.href = '/login';
+                // Only redirect if we're on a protected page (not during upload/verify flows)
+                const path = window.location.pathname;
+                if (path !== '/login' && path !== '/signup') {
+                    // Use setTimeout to avoid interrupting ongoing error handling
+                    setTimeout(() => {
+                        window.location.href = '/login';
+                    }, 100);
                 }
             }
         } else if (error.request) {

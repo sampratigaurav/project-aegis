@@ -42,8 +42,13 @@ async def register_model(
     if existing_model:
         raise HTTPException(status_code=400, detail="Model with this hash is already registered.")
         
-    # 4. Register on blockchain
-    tx_hash = blockchain.register_model_hash_on_chain(file_hash)
+    # 4. Register on blockchain (non-fatal - save to DB even if chain fails)
+    tx_hash = None
+    try:
+        tx_hash = blockchain.register_model_hash_on_chain(file_hash)
+    except Exception as e:
+        logger.error(f"Blockchain registration failed (non-fatal): {e}")
+        # Continue with DB save even if blockchain fails
     
     actual_name = name if name else file.filename
     # 5. Store in DB
