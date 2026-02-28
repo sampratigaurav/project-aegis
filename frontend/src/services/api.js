@@ -6,7 +6,7 @@ if (!import.meta.env.VITE_API_URL) {
 
 const api = axios.create({
     baseURL: import.meta.env.VITE_API_URL,
-    timeout: 180000, // 3 minutes — blockchain transactions can take 30-120s
+    timeout: 180000,
 });
 
 api.interceptors.request.use(
@@ -23,34 +23,23 @@ api.interceptors.request.use(
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        // Graceful formatting
         const formattedError = {
             message: 'An unexpected error occurred.',
-            status: error.response?.status || 500,
+            status: error.response?.status || 0,
             originalError: error,
         };
 
         if (error.response) {
-            // The request was made and the server responded with a status code outside 2xx
             formattedError.message = error.response.data?.detail || error.response.data?.message || error.response.statusText;
 
-            // Handle 401 Unauthorized globally
+            // On 401, just clear the token. Do NOT redirect.
+            // ProtectedRoute will handle redirect naturally on next render.
             if (error.response.status === 401) {
                 localStorage.removeItem('aegis_token');
-                // Only redirect if we're on a protected page (not during upload/verify flows)
-                const path = window.location.pathname;
-                if (path !== '/login' && path !== '/signup') {
-                    // Use setTimeout to avoid interrupting ongoing error handling
-                    setTimeout(() => {
-                        window.location.href = '/login';
-                    }, 100);
-                }
             }
         } else if (error.request) {
-            // The request was made but no response was received
-            formattedError.message = 'Network error. Please check your connection.';
+            formattedError.message = 'Network error. Please check your connection or try again.';
         } else {
-            // Something happened in setting up the request
             formattedError.message = error.message;
         }
 

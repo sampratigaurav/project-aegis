@@ -40,8 +40,14 @@ export default function ModelUpload() {
             });
             toast.success('Model successfully uploaded and verified.');
         } catch (error) {
-            toast.error(error.message || 'Failed to register model. Please try again.');
-            setFile(null); // Reset file if failed
+            if (error.status === 401) {
+                toast.error('Session expired. Please sign in again.');
+            } else if (error.status === 403) {
+                toast.error('⚠️ Malicious code detected! Upload rejected.');
+            } else {
+                toast.error(error.message || 'Failed to register model. Please try again.');
+            }
+            setFile(null);
         } finally {
             setScanning(false);
         }
