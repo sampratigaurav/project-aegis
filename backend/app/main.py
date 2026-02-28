@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Request
+from fastapi.exceptions import HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import logging
@@ -35,6 +36,9 @@ app = FastAPI(
 # -----------------------
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
+    # Let FastAPI handle its own HTTPExceptions (401, 403, 404, etc.)
+    if isinstance(exc, HTTPException):
+        raise exc
     logger.error(f"Unhandled exception: {exc}", exc_info=True)
     return JSONResponse(
         status_code=500,
