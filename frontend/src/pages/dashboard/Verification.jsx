@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { ShieldCheck, ShieldAlert, FileSearch, Upload } from 'lucide-react';
+import { ShieldCheck, ShieldAlert, FileSearch, Upload, ExternalLink } from 'lucide-react';
 import { verifyService } from '../../services/verifyService';
 import { useToast } from '../../context/ToastContext';
 import Spinner from '../../components/ui/Spinner';
@@ -40,7 +40,8 @@ export default function Verification() {
                 message: onChain?.is_registered ? 'Cryptographic proof matches registered payload.' : 'Model not found or altered.',
                 publisher: onChain?.publisher ?? 'Unknown',
                 timestamp: onChain?.timestamp ? (onChain.timestamp * 1000) : null,
-                file_hash: response?.file_hash ?? null
+                file_hash: response?.file_hash ?? null,
+                tx_hash: response?.tx_hash ?? null
             });
             toast.success('Verification process completed.');
         } catch (error) {
@@ -109,17 +110,36 @@ export default function Verification() {
                     )}
 
                     {result.status === 'verified' && (
-                        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full max-w-xl">
-                            <div className="flex w-full items-center justify-between p-4 bg-black/50 border border-white/10 rounded-xl">
-                                <span className="text-xs text-gray-500 uppercase tracking-widest font-bold">Publisher</span>
-                                <code className="text-white font-mono text-sm">{result.publisher}</code>
+                        <div className="flex flex-col items-center justify-center gap-4 w-full max-w-xl">
+                            <div className="flex flex-col sm:flex-row w-full gap-4">
+                                <div className="flex w-full items-center justify-between p-4 bg-black/50 border border-white/10 rounded-xl">
+                                    <span className="text-xs text-gray-500 uppercase tracking-widest font-bold">Publisher</span>
+                                    <code className="text-white font-mono text-sm">{result.publisher}</code>
+                                </div>
+                                <div className="flex w-full items-center justify-between p-4 bg-black/50 border border-white/10 rounded-xl">
+                                    <span className="text-xs text-gray-500 uppercase tracking-widest font-bold">Timestamp</span>
+                                    <span className="text-white text-sm font-medium">
+                                        {result.timestamp ? new Date(result.timestamp).toLocaleDateString() : 'N/A'}
+                                    </span>
+                                </div>
                             </div>
-                            <div className="flex w-full items-center justify-between p-4 bg-black/50 border border-white/10 rounded-xl">
-                                <span className="text-xs text-gray-500 uppercase tracking-widest font-bold">Timestamp</span>
-                                <span className="text-white text-sm font-medium">
-                                    {result.timestamp ? new Date(result.timestamp).toLocaleDateString() : 'N/A'}
-                                </span>
-                            </div>
+
+                            {result.tx_hash && (
+                                <div className="flex w-full items-center justify-between p-4 bg-black/50 border border-white/10 rounded-xl">
+                                    <div className="min-w-0 pr-4">
+                                        <span className="text-xs text-gray-500 uppercase tracking-widest font-bold block mb-1">Blockchain TX</span>
+                                        <code className="text-white font-mono text-xs break-all">{result.tx_hash}</code>
+                                    </div>
+                                    <a
+                                        href={`https://amoy.polygonscan.com/tx/${result.tx_hash}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex-shrink-0 flex items-center gap-1 text-aegis-accent bg-aegis-accent/10 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-aegis-accent/20 transition-all border border-aegis-accent/20"
+                                    >
+                                        <ExternalLink className="w-3 h-3" /> PolygonScan
+                                    </a>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>

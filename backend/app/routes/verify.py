@@ -52,6 +52,11 @@ async def verify_model(file: UploadFile = File(...), db: Session = Depends(get_d
             publisher = db_model.publisher.email if db_model.publisher else "Unknown"
             registered_at = int(db_model.created_at.timestamp()) if db_model.created_at else None
             
+        # Get tx_hash for display
+        tx_hash = None
+        if db_model and db_model.tx_hash:
+            tx_hash = db_model.tx_hash
+        
         # If neither condition is met, is_registered stays False
         
         logger.info(f"Verification for {file_hash[:16]}...: on_chain={chain_data.get('is_registered')}, in_db={bool(db_model)}, result={is_registered}")
@@ -59,6 +64,7 @@ async def verify_model(file: UploadFile = File(...), db: Session = Depends(get_d
         return {
             "status": "success",
             "file_hash": file_hash,
+            "tx_hash": tx_hash,
             "on_chain_verification": {
                 "is_registered": is_registered,
                 "publisher": publisher,
