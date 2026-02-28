@@ -19,6 +19,7 @@ def get_marketplace_models(skip: int = 0, limit: int = 100, db: Session = Depend
             "publisher": model.publisher.email if model.publisher else "Unknown",
             "verified": model.verified,
             "file_hash": model.file_hash,
+            "tx_hash": model.tx_hash,
             "created_at": model.created_at
         })
     return result

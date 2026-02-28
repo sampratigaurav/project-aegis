@@ -53,4 +53,5 @@ class MarketplaceModel(BaseModel):
     publisher: str
     verified: bool
     file_hash: str
+    tx_hash: Optional[str] = None
     created_at: datetime
