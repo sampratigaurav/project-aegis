@@ -39,7 +39,8 @@ export default function Verification() {
                 status: onChain?.is_registered ? 'verified' : 'tampered',
                 message: onChain?.is_registered ? 'Cryptographic proof matches registered payload.' : 'Model not found or altered.',
                 publisher: onChain?.publisher ?? 'Unknown',
-                timestamp: onChain?.timestamp ? (onChain.timestamp * 1000) : null
+                timestamp: onChain?.timestamp ? (onChain.timestamp * 1000) : null,
+                file_hash: response?.file_hash ?? null
             });
             toast.success('Verification process completed.');
         } catch (error) {
@@ -97,6 +98,15 @@ export default function Verification() {
                         {result.status === 'verified' ? 'Authentic Model' : 'Tampered / Unregistered'}
                     </h3>
                     <p className="text-gray-300 mb-6 max-w-lg">{result.message}</p>
+
+                    {result.file_hash && (
+                        <div className="w-full max-w-xl mb-6">
+                            <div className="flex w-full items-center justify-between p-4 bg-black/50 border border-white/10 rounded-xl">
+                                <span className="text-xs text-gray-500 uppercase tracking-widest font-bold">File Hash</span>
+                                <code className="text-white font-mono text-xs break-all max-w-[300px]">{result.file_hash}</code>
+                            </div>
+                        </div>
+                    )}
 
                     {result.status === 'verified' && (
                         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full max-w-xl">

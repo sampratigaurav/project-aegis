@@ -1,4 +1,3 @@
-import json
 import logging
 from web3 import Web3
 from web3.exceptions import Web3Exception
@@ -8,108 +7,128 @@ logger = logging.getLogger(__name__)
 
 w3 = Web3(Web3.HTTPProvider(settings.POLYGON_RPC))
 
+# ABI matching the real AegisRegistry.sol contract
+CONTRACT_ABI = [
+    {
+        "inputs": [
+            {"internalType": "bytes32", "name": "modelHash", "type": "bytes32"}
+        ],
+        "name": "registerModel",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {"internalType": "bytes32", "name": "modelHash", "type": "bytes32"}
+        ],
+        "name": "verifyModel",
+        "outputs": [
+            {"internalType": "address", "name": "publisher", "type": "address"},
+            {"internalType": "uint256", "name": "timestamp", "type": "uint256"}
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "anonymous": False,
+        "inputs": [
+            {"indexed": True, "internalType": "bytes32", "name": "modelHash", "type": "bytes32"},
+            {"indexed": True, "internalType": "address", "name": "publisher", "type": "address"}
+        ],
+        "name": "ModelRegistered",
+        "type": "event"
+    }
+]
+
+ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
+
+
 def get_contract():
     if not settings.CONTRACT_ADDRESS or not settings.PRIVATE_KEY:
-        logger.warning("Blockchain credentials not fully configured. Using mock mode.")
-        return None
-        
+        raise ValueError("Blockchain credentials are not configured. Set CONTRACT_ADDRESS and PRIVATE_KEY.")
+
     try:
-        # standard ABI for Aegis smart contract
-        abi = [
-            {
-                "inputs": [
-                    {"internalType": "bytes32", "name": "fileHash", "type": "bytes32"},
-                    {"internalType": "string", "name": "metadataURI", "type": "string"}
-                ],
-                "name": "registerModel",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            },
-            {
-                "inputs": [
-                    {"internalType": "bytes32", "name": "fileHash", "type": "bytes32"}
-                ],
-                "name": "verifyModel",
-                "outputs": [
-                    {"internalType": "bool", "name": "isRegistered", "type": "bool"},
-                    {"internalType": "address", "name": "publisher", "type": "address"},
-                    {"internalType": "uint256", "name": "timestamp", "type": "uint256"}
-                ],
-                "stateMutability": "view",
-                "type": "function"
-            }
-        ]
-        contract = w3.eth.contract(address=settings.CONTRACT_ADDRESS, abi=abi)
+        contract = w3.eth.contract(
+            address=Web3.to_checksum_address(settings.CONTRACT_ADDRESS),
+            abi=CONTRACT_ABI
+        )
         return contract
     except Exception as e:
         logger.error(f"Error initializing contract: {e}")
-        return None
+        raise
 
-def register_model_hash_on_chain(file_hash: str, metadata_uri: str = "") -> str:
+
+def register_model_hash_on_chain(file_hash: str) -> str:
     """
-    Registers the model hash on Polygon.
+    Registers the model hash on Polygon Amoy.
     Returns the transaction hash.
     """
     contract = get_contract()
-    if not contract:
-        # Mock tx hash
-        return f"mock_tx_{file_hash[:10]}"
-        
+
     try:
         account = w3.eth.account.from_key(settings.PRIVATE_KEY)
         nonce = w3.eth.get_transaction_count(account.address)
-        
+
+        # SHA-256 hex string is 64 chars = 32 bytes, perfect for bytes32
         file_hash_bytes = bytes.fromhex(file_hash)
-        
-        tx = contract.functions.registerModel(file_hash_bytes, metadata_uri).build_transaction({
-            'chainId': 80002, # Amoy testnet
-            'gas': 2000000,
-            'maxFeePerGas': w3.to_wei('2', 'gwei'),
-            'maxPriorityFeePerGas': w3.to_wei('1', 'gwei'),
+
+        tx = contract.functions.registerModel(file_hash_bytes).build_transaction({
+            'chainId': 80002,  # Amoy testnet
+            'gas': 200000,
+            'maxFeePerGas': w3.to_wei('30', 'gwei'),
+            'maxPriorityFeePerGas': w3.to_wei('25', 'gwei'),
             'nonce': nonce,
         })
-        
+
         signed_tx = w3.eth.account.sign_transaction(tx, private_key=settings.PRIVATE_KEY)
-        tx_hash = w3.eth.send_raw_transaction(signed_tx.rawTransaction)
-        
-        # Wait for receipt to guarantee success
+        tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
+
+        logger.info(f"Transaction sent: {w3.to_hex(tx_hash)}")
+
+        # Wait for receipt
         receipt = w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
         if receipt.status != 1:
             raise Exception("Smart contract transaction reverted")
-            
+
+        logger.info(f"Model registered on-chain. Tx: {w3.to_hex(tx_hash)}")
         return w3.to_hex(tx_hash)
+
     except Web3Exception as e:
-        logger.error(f"Web3 provider error while registering on chain: {e}")
-        raise e
+        logger.error(f"Web3 error while registering on chain: {e}")
+        raise
     except Exception as e:
         logger.error(f"Failed to register on chain: {e}")
-        raise e
+        raise
 
 
 def verify_model_on_chain(file_hash: str) -> dict:
     """
     Verifies if a model hash exists on chain.
+    Returns is_registered, publisher address, and timestamp.
     """
     contract = get_contract()
-    if not contract:
-        # Mock response
-        return {
-            "is_registered": True,
-            "publisher": "0xMockPublisherAddress",
-            "timestamp": 1700000000
-        }
-        
+
     try:
         file_hash_bytes = bytes.fromhex(file_hash)
         result = contract.functions.verifyModel(file_hash_bytes).call()
+
+        publisher_address = result[0]
+        timestamp = result[1]
+
+        # If publisher is the zero address, the model was never registered
+        is_registered = publisher_address != ZERO_ADDRESS
+
+        logger.info(f"On-chain verification for {file_hash[:16]}...: registered={is_registered}, publisher={publisher_address}")
+
         return {
-            "is_registered": result[0],
-            "publisher": result[1],
-            "timestamp": result[2]
+            "is_registered": is_registered,
+            "publisher": publisher_address if is_registered else None,
+            "timestamp": timestamp if is_registered else None
         }
+
     except Web3Exception as e:
-        logger.error(f"Web3 provider error while verifying on chain: {e}")
+        logger.error(f"Web3 error while verifying on chain: {e}")
         return {
             "is_registered": False,
             "publisher": None,

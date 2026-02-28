@@ -43,8 +43,7 @@ async def register_model(
         raise HTTPException(status_code=400, detail="Model with this hash is already registered.")
         
     # 4. Register on blockchain
-    # Use empty string for metadata URI or a generic JSON URI
-    tx_hash = blockchain.register_model_hash_on_chain(file_hash, "")
+    tx_hash = blockchain.register_model_hash_on_chain(file_hash)
     
     actual_name = name if name else file.filename
     # 5. Store in DB
