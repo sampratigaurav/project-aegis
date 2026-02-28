@@ -12,6 +12,21 @@ console = Console()
 AEGIS_API_URL = os.getenv("AEGIS_API_URL", "https://project-aegis-production.up.railway.app")
 # For local testing, users can export AEGIS_API_URL="http://localhost:8000"
 
+TOKEN_FILE = os.path.expanduser("~/.aegis_token")
+
+def save_token(token: str):
+    """Save the JWT token to the local file."""
+    with open(TOKEN_FILE, "w") as f:
+        f.write(token)
+    os.chmod(TOKEN_FILE, 0o600)  # Restrict permissions
+
+def load_token() -> str:
+    """Load the JWT token from the local file."""
+    if os.path.exists(TOKEN_FILE):
+        with open(TOKEN_FILE, "r") as f:
+            return f.read().strip()
+    return None
+
 def compute_sha256(file_path: str) -> str:
     """Compute the SHA-256 hash of a file."""
     sha256_hash = hashlib.sha256()
@@ -92,15 +107,58 @@ def verify(
 
 
 @app.command()
+def login(
+    email: str = typer.Option(..., "--email", "-e", prompt="Email address", help="Your Aegis account email"),
+    password: str = typer.Option(..., "--password", "-p", prompt="Password", hide_input=True, help="Your Aegis account password")
+):
+    """
+    Authenticate with the Aegis API and save the session token locally.
+    """
+    with console.status("[bold blue]Authenticating...[/bold blue]"):
+        try:
+            response = requests.post(
+                f"{AEGIS_API_URL}/auth/login",
+                data={"username": email, "password": password},
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+                timeout=10
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                token = data.get("access_token")
+                save_token(token)
+                console.print(f"\n[bold green][SUCCESS][/bold green] Successfully logged in as {email}!")
+                console.print("Your session token has been securely stored. You can now use `aegis register`.")
+            else:
+                console.print("\n[bold red][FAILED][/bold red] Login failed. Please check your credentials.")
+                try:
+                    console.print(response.json().get("detail", ""))
+                except:
+                    pass
+                raise typer.Exit(code=1)
+                
+        except requests.exceptions.RequestException as e:
+            console.print(f"\n[bold red]Network Error:[/bold red] Could not connect to Aegis API.\n{e}")
+            raise typer.Exit(code=1)
+
+
+@app.command()
 def register(
     model_path: str = typer.Argument(..., help="Path to the model file to register"),
     name: str = typer.Option(None, "--name", "-n", help="Name of the model (defaults to filename)"),
     description: str = typer.Option(None, "--desc", "-d", help="Description of the model"),
-    token: str = typer.Option(..., "--token", "-t", envvar="AEGIS_TOKEN", help="Aegis API Token (or set AEGIS_TOKEN env var)")
+    token: str = typer.Option(None, "--token", "-t", envvar="AEGIS_TOKEN", help="Aegis API Token (optional if logged in)")
 ):
     """
     Securely scan and register a local model to the Aegis Blockchain.
     """
+    # Resolve token
+    auth_token = token or load_token()
+    if not auth_token:
+        console.print("[bold red]Error: You must be logged in to register models.[/bold red]")
+        console.print("Run [cyan]`aegis login`[/cyan] to authenticate, or provide a token via --token or AEGIS_TOKEN env var.")
+        raise typer.Exit(code=1)
+
     if not os.path.exists(model_path):
         console.print(f"[bold red]Error:[/bold red] File '{model_path}' not found.")
         raise typer.Exit(code=1)
@@ -153,7 +211,7 @@ def register(
     # Step 3: Register via API
     with console.status("[bold blue]Registering model on Aegis Blockchain via API...[/bold blue]"):
         try:
-            headers = {"Authorization": f"Bearer {token}"}
+            headers = {"Authorization": f"Bearer {auth_token}"}
             payload = {
                 "name": model_name,
                 "description": description,
