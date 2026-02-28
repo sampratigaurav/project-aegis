@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     
     POLYGON_RPC: str = "https://polygon-amoy.g.alchemy.com/v2/YVa7apDLJrsHD_4EoXAyF"
     PRIVATE_KEY: str = "1f6c6a7970e85bc2f089ba54cc81911bccac6a7fadb2568efceabd487bee0e31"
-    CONTRACT_ADDRESS: str = "0x887d146B140D4644e9cA69D45A5cdD6C77292f082"
+    CONTRACT_ADDRESS: str = "0xe7f686901b96311C027464D7ed25300879C64924"
     
     FRONTEND_ORIGIN: str = "http://localhost:5173"
     

@@ -153,7 +153,11 @@ export default function ModelUpload() {
                                     <span className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Blockchain Tx</span>
                                     <div className="flex items-center gap-2">
                                         <code className="text-sm text-white font-mono break-all">{result.txId}</code>
-                                        <span className="bg-emerald-500/20 text-emerald-400 text-xs px-2 py-1 rounded font-bold">Confirmed</span>
+                                        {result.txId && result.txId !== 'N/A' && !result.txId.startsWith('mock') ? (
+                                            <span className="bg-emerald-500/20 text-emerald-400 text-xs px-2 py-1 rounded font-bold">Confirmed</span>
+                                        ) : (
+                                            <span className="bg-yellow-500/20 text-yellow-400 text-xs px-2 py-1 rounded font-bold">Pending</span>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="bg-white/5 border border-white/5 rounded-xl p-4">
