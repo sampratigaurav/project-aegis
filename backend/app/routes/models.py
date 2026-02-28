@@ -29,7 +29,7 @@ async def register_model(
         raise HTTPException(status_code=400, detail="File too large. Max size is 2GB.")
         
     # 1. Scan for malicious patterns
-    is_malicious = scanner.scan_model_file(file_content)
+    is_malicious = scanner.scan_model_file(file_content, file.filename)
     if is_malicious:
         logger.warning(f"Malicious code detected in upload by {current_user.email}")
         raise HTTPException(status_code=403, detail="Malicious code detected in model file. Registration rejected.")
