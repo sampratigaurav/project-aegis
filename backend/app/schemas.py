@@ -33,6 +33,11 @@ class ModelFileBase(BaseModel):
     name: str
     description: Optional[str] = None
 
+class CLIModelRegister(BaseModel):
+    name: str
+    description: Optional[str] = None
+    file_hash: str
+    scan_status: str
 
 class ModelFileResponse(ModelFileBase):
     id: int

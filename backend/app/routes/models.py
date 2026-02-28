@@ -83,3 +83,53 @@ async def register_model(
         "publisher_id": new_model.publisher_id,
         "created_at": new_model.created_at
     }
+
+@router.post("/register-cli", response_model=schemas.ModelFileResponse)
+async def register_model_cli(
+    model_data: schemas.CLIModelRegister,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    # Check if already exists in DB
+    existing_model = db.query(models.ModelFile).filter(models.ModelFile.file_hash == model_data.file_hash).first()
+    if existing_model:
+        raise HTTPException(status_code=400, detail="Model with this hash is already registered.")
+        
+    # Register on blockchain (non-fatal - save to DB even if chain fails)
+    tx_hash = None
+    try:
+        tx_hash = blockchain.register_model_hash_on_chain(model_data.file_hash)
+    except Exception as e:
+        logger.error(f"Blockchain registration failed (non-fatal): {e}")
+        # Continue with DB save even if blockchain fails
+    
+    # Store in DB
+    new_model = models.ModelFile(
+        name=model_data.name,
+        description=model_data.description,
+        file_hash=model_data.file_hash,
+        tx_hash=tx_hash,
+        verified=True,
+        publisher_id=current_user.id
+    )
+    
+    try:
+        db.add(new_model)
+        db.commit()
+        db.refresh(new_model)
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error(f"Database error during CLI model registration: {str(e)}")
+        raise HTTPException(status_code=500, detail="Database error occurred during registration.")
+    
+    return {
+        "id": new_model.id,
+        "name": new_model.name,
+        "description": new_model.description,
+        "file_hash": new_model.file_hash,
+        "tx_hash": new_model.tx_hash,
+        "verified": new_model.verified,
+        "scan_status": model_data.scan_status,
+        "publisher_id": new_model.publisher_id,
+        "created_at": new_model.created_at
+    }
